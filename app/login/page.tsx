@@ -123,8 +123,9 @@ export default function LoginPage() {
   };
 
   const handleSendOTP = async () => {
-    if (!forgotEmail || !validateEmail(forgotEmail)) {
-      setForgotPasswordError('Please enter a valid email address');
+    const emailErr = validateEmail(forgotEmail);
+    if (emailErr) {
+      setForgotPasswordError(emailErr);
       return;
     }
 

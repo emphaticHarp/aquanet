@@ -40,6 +40,14 @@
     "gradient": "from-orange-500 to-amber-600"
   },
   {
+    "name": "Trishma",
+    "email": "trishma777@gmail.com",
+    "password": "password123",
+    "role": "Team Member",
+    "initial": "T",
+    "gradient": "from-pink-500 to-rose-600"
+  },
+  {
     "name": "Team Member 5",
     "email": "member5@aquanet.com",
     "password": "password123",
