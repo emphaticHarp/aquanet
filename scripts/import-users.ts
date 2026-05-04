@@ -19,16 +19,24 @@ import { resolve } from 'path';
 // ── Load MongoDB URI ──────────────────────────────────────────
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/aquanet';
 
-// ── User Schema (inline to avoid import issues) ───────────────
+// ── User Schema (NO pre-save hook - we hash manually below) ──
 const UserSchema = new mongoose.Schema({
-  name:      { type: String, required: true },
-  email:     { type: String, required: true, unique: true, lowercase: true },
-  password:  { type: String, required: true },
-  role:      { type: String, default: 'Team Member' },
-  initial:   { type: String },
-  gradient:  { type: String, default: 'from-green-500 to-emerald-600' },
+  name:           { type: String, required: true },
+  email:          { type: String, required: true, unique: true, lowercase: true },
+  password:       { type: String, required: true },
+  role:           { type: String, default: 'Team Member' },
+  initial:        { type: String },
+  gradient:       { type: String, default: 'from-green-500 to-emerald-600' },
+  resetOTP:       { type: String, default: null },
+  resetOTPExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
+// Add comparePassword method
+UserSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
+  return bcrypt.compare(password, this.password);
+};
+
+// Use existing model or create new one (no pre-save hook)
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 // ── Load users.json ───────────────────────────────────────────
