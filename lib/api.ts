@@ -1,7 +1,28 @@
 // API utility functions for making authenticated requests
 
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  // Try sessionStorage first (tab-specific)
+  const fromSession = sessionStorage.getItem('token');
+  if (fromSession) return fromSession;
+  
+  // Try localStorage
+  const fromLocal = localStorage.getItem('token');
+  if (fromLocal) return fromLocal;
+  
+  // Try cookie (works after full page reload on production)
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'token') return value;
+  }
+  
+  return null;
+}
+
 function getAuthHeaders() {
-  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+  const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -9,7 +30,7 @@ function getAuthHeaders() {
 }
 
 function getAuthHeadersForFormData() {
-  const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+  const token = getToken();
   return {
     ...(token && { Authorization: `Bearer ${token}` }),
   };

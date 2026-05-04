@@ -1143,7 +1143,25 @@ export default function DashboardPage() {
   // Auth check + data loading
   useEffect(() => {
     document.title = 'Dashboard — AquaNet';
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    
+    // Read token from sessionStorage, localStorage, or cookie
+    const getToken = () => {
+      const fromSession = sessionStorage.getItem('token');
+      if (fromSession) return fromSession;
+      
+      const fromLocal = localStorage.getItem('token');
+      if (fromLocal) return fromLocal;
+      
+      // Read from cookie
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'token') return value;
+      }
+      return null;
+    };
+
+    const token = getToken();
     if (!token) {
       router.push('/login');
       return;
@@ -1185,7 +1203,10 @@ export default function DashboardPage() {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('sessionId');
     localStorage.removeItem('token');
+    localStorage.removeItem('sessionId');
     localStorage.removeItem('savedEmail');
+    // Clear cookie
+    document.cookie = 'token=; path=/; max-age=0';
     router.push('/login');
   };
 

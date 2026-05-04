@@ -354,6 +354,8 @@ export default function LoginPage() {
         sessionStorage.setItem('sessionId', data.sessionId);
         localStorage.setItem('token', data.token);
         localStorage.setItem('sessionId', data.sessionId);
+        // Also store in cookie for production (survives full page reloads)
+        document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
         // Redirect to dashboard
         window.location.replace('/dashboard');
       }
