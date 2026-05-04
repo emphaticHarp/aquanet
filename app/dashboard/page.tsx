@@ -1177,8 +1177,7 @@ export default function DashboardPage() {
         clearInterval(conversationsInterval);
       };
     } catch {
-      setUser({ name: 'Admin', email: '' });
-      setTimeout(() => setLoading(false), 800);
+      router.push('/login');
     }
   }, [router]);
 

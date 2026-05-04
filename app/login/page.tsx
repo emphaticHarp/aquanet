@@ -349,11 +349,13 @@ export default function LoginPage() {
           localStorage.removeItem('rememberMe');
           localStorage.removeItem('savedEmail');
         }
-        // Use sessionStorage for tab-specific login
+        // Store in BOTH sessionStorage and localStorage so it survives navigation
         sessionStorage.setItem('token', data.token);
         sessionStorage.setItem('sessionId', data.sessionId);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('sessionId', data.sessionId);
         // Redirect to dashboard
-        window.location.href = '/dashboard';
+        window.location.replace('/dashboard');
       }
     } catch {
       setIsLoading(false);
