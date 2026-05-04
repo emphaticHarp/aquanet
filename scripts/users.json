@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Soumyajyoti Banik",
+    "email": "soumya@aquanet.com",
+    "password": "password123",
+    "role": "Aquaculture Manager",
+    "initial": "S",
+    "gradient": "from-green-500 to-emerald-600"
+  },
+  {
+    "name": "Team Member 2",
+    "email": "member2@aquanet.com",
+    "password": "password123",
+    "role": "Marine IoT Engineer",
+    "initial": "T",
+    "gradient": "from-blue-500 to-cyan-600"
+  },
+  {
+    "name": "Team Member 3",
+    "email": "member3@aquanet.com",
+    "password": "password123",
+    "role": "Data Analyst",
+    "initial": "T",
+    "gradient": "from-purple-500 to-violet-600"
+  },
+  {
+    "name": "Team Member 4",
+    "email": "member4@aquanet.com",
+    "password": "password123",
+    "role": "Fisheries Researcher",
+    "initial": "T",
+    "gradient": "from-orange-500 to-amber-600"
+  },
+  {
+    "name": "Team Member 5",
+    "email": "member5@aquanet.com",
+    "password": "password123",
+    "role": "Robot Fleet Manager",
+    "initial": "T",
+    "gradient": "from-pink-500 to-rose-600"
+  }
+]
