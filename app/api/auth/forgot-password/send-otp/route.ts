@@ -35,17 +35,29 @@ export async function POST(req: NextRequest) {
     const otp = generateOTP();
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Save OTP to user
+    // Save OTP to user first
     user.resetOTP = otp;
     user.resetOTPExpiry = expiry;
     await user.save();
 
-    // Send OTP email
-    await sendOTPEmail(user.email, otp, user.name);
+    // Try to send OTP email
+    let emailSent = false;
+    try {
+      await sendOTPEmail(user.email, otp, user.name);
+      emailSent = true;
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      // Email failed but OTP is saved - return OTP in response as fallback
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'OTP sent to your email address',
+      message: emailSent 
+        ? 'OTP sent to your email address'
+        : 'Email service unavailable. Use this OTP to reset your password:',
+      // Return OTP in response if email failed (development fallback)
+      otp: emailSent ? undefined : otp,
+      emailSent,
     });
   } catch (error) {
     console.error('Send OTP error:', error);

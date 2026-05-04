@@ -146,7 +146,13 @@ export default function LoginPage() {
         setTimeout(() => {
           setShowStepSkeleton(false);
           setForgotPasswordStep('otp');
-          setForgotPasswordSuccess('OTP sent to your email!');
+          // If email failed, show OTP on screen
+          if (!data.emailSent && data.otp) {
+            setForgotPasswordSuccess(`Email unavailable. Your OTP is: ${data.otp}`);
+            setOtp(data.otp); // Auto-fill the OTP
+          } else {
+            setForgotPasswordSuccess('OTP sent to your email!');
+          }
         }, 800);
       } else {
         setForgotPasswordError(data.message || 'Failed to send OTP');

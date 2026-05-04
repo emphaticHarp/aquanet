@@ -8,6 +8,14 @@
     "gradient": "from-green-500 to-emerald-600"
   },
   {
+    "name": "Soumyajyoti Banik",
+    "email": "soumyajyotibanik07@gmail.com",
+    "password": "869412",
+    "role": "Aquaculture Manager",
+    "initial": "S",
+    "gradient": "from-green-500 to-emerald-600"
+  },
+  {
     "name": "Team Member 2",
     "email": "member2@aquanet.com",
     "password": "password123",
