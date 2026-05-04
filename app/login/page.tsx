@@ -1165,13 +1165,14 @@ export default function LoginPage() {
                     <div className="space-y-4">
                       <div className="flex justify-center">
                         <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} />
-                            <InputOTPSlot index={1} />
-                            <InputOTPSlot index={2} />
-                            <InputOTPSlot index={3} />
-                            <InputOTPSlot index={4} />
-                            <InputOTPSlot index={5} />
+                          <InputOTPGroup className="gap-2">
+                            {[0,1,2,3,4,5].map((i) => (
+                              <InputOTPSlot
+                                key={i}
+                                index={i}
+                                className="w-12 h-12 text-lg font-bold border-2 border-green-300 bg-white text-gray-900 rounded-xl shadow-sm data-[active=true]:border-green-500 data-[active=true]:ring-2 data-[active=true]:ring-green-300"
+                              />
+                            ))}
                           </InputOTPGroup>
                         </InputOTP>
                       </div>
