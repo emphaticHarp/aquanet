@@ -1,28 +1,19 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = 'mongodb+srv://soumyajyotibanik07_db_user:bH2l2bFWpbBEaOq5@cluster0.xoqwxjx.mongodb.net/aquanet?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = 'mongodb://soumyajyotibanik07_db_user:869412Soumya@ac-rxrsb1i-shard-00-00.xoqwxjx.mongodb.net:27017,ac-rxrsb1i-shard-00-01.xoqwxjx.mongodb.net:27017,ac-rxrsb1i-shard-00-02.xoqwxjx.mongodb.net:27017/aquanet?ssl=true&replicaSet=atlas-zf90wn-shard-0&authSource=admin&retryWrites=true&w=majority';
 
 async function testConnection() {
-  console.log('🔌 Testing MongoDB Atlas connection...');
-  
+  console.log('🔌 Testing direct MongoDB Atlas connection (no SRV)...');
   try {
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 15000,
+      tls: true,
     });
-    
-    console.log('✅ MongoDB Atlas connected successfully!');
-    console.log('📊 Database:', mongoose.connection.db.databaseName);
-    
+    console.log('✅ Connected! Database:', mongoose.connection.db.databaseName);
     await mongoose.disconnect();
-    console.log('👋 Disconnected');
     process.exit(0);
   } catch (error: any) {
-    console.error('❌ MongoDB connection failed!');
-    console.error('Error:', error.message);
-    
-    console.log('\n💡 Your network is blocking MongoDB Atlas.');
-    console.log('   Use local MongoDB for now: mongodb://localhost:27017/aquanet');
-    
+    console.error('❌ Failed:', error.message);
     process.exit(1);
   }
 }
