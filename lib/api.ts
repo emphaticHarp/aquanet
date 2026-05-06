@@ -185,3 +185,42 @@ export const presenceAPI = {
     return res.json();
   },
 };
+
+// Components API
+export const componentsAPI = {
+  async getComponents() {
+    const res = await fetch('/api/components', { headers: getAuthHeaders() });
+    return res.json();
+  },
+  async createComponent(data: { name: string; category: string; status: string; productLink?: string; quantity: number; unitPrice: number }) {
+    const res = await fetch('/api/components', {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  async updateComponent(id: string, data: { name: string; category: string; status: string; productLink?: string; quantity: number; unitPrice: number }) {
+    const res = await fetch(`/api/components/${id}`, {
+      method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+  async deleteComponent(id: string) {
+    const res = await fetch(`/api/components/${id}`, {
+      method: 'DELETE', headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+  async importComponents(components: any[]) {
+    const res = await fetch('/api/components/import', {
+      method: 'POST', headers: getAuthHeaders(),
+      body: JSON.stringify({ components }),
+    });
+    return res.json();
+  },
+  async deleteAllComponents() {
+    const res = await fetch('/api/components/delete-all', {
+      method: 'DELETE', headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+};

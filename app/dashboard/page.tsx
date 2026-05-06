@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { postsAPI, messagesAPI, usersAPI, uploadAPI, presenceAPI } from '@/lib/api';
+import { postsAPI, messagesAPI, usersAPI, uploadAPI, presenceAPI, componentsAPI } from '@/lib/api';
 import NetworkIndicator from '@/components/NetworkIndicator';
 import {
   FaHome,
@@ -42,6 +42,26 @@ import {
   FaLock,
   FaFile,
   FaDownload,
+  FaMicrochip,
+  FaPlus,
+  FaEdit,
+  FaBoxOpen,
+  FaShoppingCart,
+  FaTools,
+  FaCheckSquare,
+  FaLayerGroup,
+  FaSortAmountDown,
+  FaTag,
+  FaHashtag,
+  FaCubes,
+  FaExternalLinkAlt,
+  FaLink,
+  FaStore,
+  FaFileImport,
+  FaFileExcel,
+  FaFileCsv,
+  FaCloudUploadAlt,
+  FaCheckDouble,
 } from 'react-icons/fa';
 
 // Dynamic import for emoji picker to avoid SSR issues
@@ -181,6 +201,19 @@ interface TeamMember {
   role: string;
   gradient: string;
   connectionStatus: 'none' | 'pending' | 'accepted' | 'rejected';
+}
+
+interface ProjectComponent {
+  _id: string;
+  name: string;
+  category: string;
+  status: 'ordered' | 'not-ordered' | 'in-use' | 'maintenance';
+  productLink?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  addedBy: string;
+  createdAt: Date;
 }
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -1070,6 +1103,23 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const totalUnread = chatContacts.reduce((s, c) => s + c.unread, 0);
 
+  // ── Components state ──────────────────────────────────────────
+  const [components, setComponents] = useState<ProjectComponent[]>([]);
+  const [showComponentsModal, setShowComponentsModal] = useState(false);
+  const [editingComponent, setEditingComponent] = useState<ProjectComponent | null>(null);
+  const [componentForm, setComponentForm] = useState({
+    name: '', category: '', status: 'not-ordered', productLink: '', quantity: 1, unitPrice: 0,
+  });
+  const [componentModalTab, setComponentModalTab] = useState<'all' | 'add' | 'import'>('all');
+  const [componentFilter, setComponentFilter] = useState('all');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+
   const toggleDarkMode = () => {
     setDarkMode(prev => {
       const next = !prev;
@@ -1113,6 +1163,122 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch team members:', error);
+    }
+  };
+
+  // Fetch components
+  const fetchComponents = async () => {
+    try {
+      const result = await componentsAPI.getComponents();
+      if (result.success) setComponents(result.components);
+    } catch (error) { console.error('Failed to fetch components:', error); }
+  };
+
+  // Parse CSV/Excel file for import preview
+  const handleImportFile = async (file: File) => {
+    setImportFile(file);
+    setImportResult(null);
+    try {
+      const XLSX = await import('xlsx');
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+
+      // Get raw rows as arrays
+      const rawRows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      const KNOWN_CATEGORIES = [
+        'Power System', 'Motor and Drivers', 'Sensors',
+        'Controllers & Communication', 'Miscellaneous',
+      ];
+
+      const parsed: any[] = [];
+      let currentCategory = 'General';
+
+      // Column indices - will be detected from header row
+      let colSlNo = 0, colName = 1, colQty = 2, colUnitPrice = 3, colTotalPrice = 4, colLink = 5;
+      let headerFound = false;
+
+      for (const row of rawRows) {
+        const cells = row.map((c: any) => String(c ?? '').trim());
+        const nonEmpty = cells.filter(c => c);
+        if (nonEmpty.length === 0) continue;
+
+        const joined = nonEmpty.join(' ').toLowerCase();
+
+        // Skip title/summary rows
+        if (joined.includes('aquar components') ||
+            joined.includes('sub total') ||
+            joined.includes('grand total')) continue;
+
+        // Detect category header
+        const firstNonEmpty = nonEmpty[0];
+        if (KNOWN_CATEGORIES.some(cat =>
+          firstNonEmpty.toLowerCase() === cat.toLowerCase() ||
+          (nonEmpty.length <= 2 && firstNonEmpty.toLowerCase().includes(cat.toLowerCase()))
+        )) {
+          currentCategory = firstNonEmpty;
+          headerFound = false; // reset so we find the next header row
+          continue;
+        }
+
+        // Detect column header row (contains "Component Name")
+        if (cells.some(c => c.toLowerCase().includes('component name'))) {
+          // Map column positions from this header row
+          cells.forEach((c, i) => {
+            const lower = c.toLowerCase();
+            if (lower.includes('sl') || lower === 'sl. no.' || lower === 'sl.no') colSlNo = i;
+            else if (lower.includes('component name')) colName = i;
+            else if (lower === 'quantity' || lower === 'qty') colQty = i;
+            else if (lower.includes('unit price') || lower === 'unit price') colUnitPrice = i;
+            else if (lower.includes('total price') || lower === 'total price') colTotalPrice = i;
+            else if (lower.includes('product link') || lower === 'link' || lower === 'url') colLink = i;
+          });
+          headerFound = true;
+          continue;
+        }
+
+        // Skip if no header found yet
+        if (!headerFound) continue;
+
+        // Get values using detected column positions
+        const slNo = cells[colSlNo] || '';
+        const name = cells[colName] || '';
+        const qtyStr = cells[colQty] || '';
+        const unitPriceStr = cells[colUnitPrice] || '';
+        const totalPriceStr = cells[colTotalPrice] || '';
+        const linkStr = cells[colLink] || '';
+
+        // Must have a serial number (numeric) and a name
+        if (!slNo || isNaN(parseFloat(slNo))) continue;
+        if (!name || name.length < 2) continue;
+
+        const qty = parseFloat(qtyStr) || 1;
+        const unitPrice = parseFloat(unitPriceStr.replace(/[₹$,\s]/g, '')) || 0;
+        // Always recalculate total from qty × unitPrice
+        const totalPrice = qty * unitPrice;
+
+        const isOffline = linkStr.toLowerCase() === 'offline market';
+        const productLink = (!isOffline && linkStr.startsWith('http')) ? linkStr : '';
+
+        parsed.push({
+          'Component Name': name,
+          category: currentCategory,
+          Quantity: qty,
+          'Unit Price': unitPrice,
+          'Total Price': totalPrice,
+          'Product Link': productLink,
+          isOffline,
+          status: 'not-ordered',
+        });
+      }
+
+      console.log(`Parsed ${parsed.length} components. Sample:`, parsed[0]);
+      setImportPreview(parsed);
+    } catch (err) {
+      console.error('Failed to parse file:', err);
+      alert('Failed to parse file. Make sure it is a valid CSV or Excel file.');
     }
   };
 
@@ -1176,6 +1342,7 @@ export default function DashboardPage() {
         fetchPosts(),
         fetchTeamMembers(),
         fetchConversations(),
+        fetchComponents(),
       ]).finally(() => {
         setTimeout(() => setLoading(false), 800);
       });
@@ -1739,29 +1906,664 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* LinkedIn Jobs */}
+          {/* ── PROJECT COMPONENTS ─────────────────────────────── */}
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <FaBriefcase className="text-blue-600 text-sm" />
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">Jobs For You</p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FaMicrochip className="text-green-600 text-sm" />
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Components</p>
+              </div>
+              <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">
+                {components.length}
+              </span>
             </div>
-            <div className="space-y-3">
-              {LINKEDIN_JOBS.map((job) => (
-                <div key={job.id} className="group cursor-pointer">
-                  <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">{job.title}</p>
-                  <p className="text-xs text-gray-600">{job.company}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{job.location}</span>
-                    <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                    <span className="text-xs text-green-600 font-medium">{job.type}</span>
+
+            {/* Show first 3 components */}
+            <div className="space-y-2">
+              {components.slice(0, 3).map((comp) => {
+                const statusConfig = {
+                  'ordered':     { icon: FaShoppingCart, color: 'text-blue-500',   bg: 'bg-blue-50',   label: 'Ordered' },
+                  'not-ordered': { icon: FaBoxOpen,      color: 'text-orange-500', bg: 'bg-orange-50', label: 'Not Ordered' },
+                  'in-use':      { icon: FaCheckSquare,  color: 'text-green-500',  bg: 'bg-green-50',  label: 'In Use' },
+                  'maintenance': { icon: FaTools,        color: 'text-red-500',    bg: 'bg-red-50',    label: 'Maintenance' },
+                }[comp.status] || { icon: FaBoxOpen, color: 'text-gray-500', bg: 'bg-gray-50', label: comp.status };
+                const StatusIcon = statusConfig.icon;
+                return (
+                  <div key={comp._id} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className={`w-8 h-8 rounded-lg ${statusConfig.bg} flex items-center justify-center flex-shrink-0`}>
+                      <StatusIcon className={`text-xs ${statusConfig.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{comp.name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <FaTag className="text-[8px] text-gray-400" />
+                        <p className="text-[10px] text-gray-500 truncate">{comp.category}</p>
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusConfig.bg} ${statusConfig.color}`}>
+                      ×{comp.quantity}
+                    </span>
                   </div>
+                );
+              })}
+              {components.length === 0 && (
+                <div className="text-center py-4">
+                  <FaCubes className="text-gray-300 text-2xl mx-auto mb-1" />
+                  <p className="text-xs text-gray-400">No components yet</p>
                 </div>
-              ))}
+              )}
             </div>
-            <button className="mt-3 w-full text-xs text-blue-600 font-semibold border border-blue-200 rounded-full py-1.5 hover:bg-blue-50 transition-colors">
-              Show all jobs
+
+            <button
+              onClick={async () => {
+                setShowComponentsModal(true);
+                setComponentModalTab('all');
+              }}
+              className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-semibold text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 rounded-lg py-2 transition-colors"
+            >
+              <FaLayerGroup className="text-xs" />
+              Manage All Components
             </button>
           </div>
+
+          {/* ── COMPONENTS MODAL ───────────────────────────────── */}
+          {showComponentsModal && (
+            <div className="fixed inset-0 z-[200] flex items-start justify-center pt-16 px-4 pb-4">
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowComponentsModal(false); setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1, unitPrice:0 }); }} />
+
+              {/* Modal - wide, starts below navbar */}
+              <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-green-500 to-emerald-600">
+                  <div className="flex items-center gap-2">
+                    <FaMicrochip className="text-white text-lg" />
+                    <h2 className="text-base font-bold text-white">Project Components</h2>
+                    <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">{components.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Fix prices button */}
+                    <button
+                      onClick={async () => {
+                        const res = await fetch('/api/components/fix-prices', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || ''}` } });
+                        const data = await res.json();
+                        if (data.success) { await fetchComponents(); alert(`✅ Fixed! Grand Total: ₹${data.grandTotal?.toLocaleString('en-IN')}`); }
+                      }}
+                      className="text-[10px] font-semibold bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                      title="Recalculate all prices"
+                    >
+                      <FaChartBar className="text-[10px]" /> Fix Prices
+                    </button>
+                    <button onClick={() => { setShowComponentsModal(false); setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1, unitPrice:0 }); }} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                      <FaTimes className="text-sm" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-100 dark:border-gray-700 px-5 bg-gray-50 dark:bg-gray-800">
+                  {[
+                    { key: 'all', icon: FaLayerGroup, label: 'All Components' },
+                    { key: 'add', icon: FaPlus, label: editingComponent ? 'Edit Component' : 'Add New' },
+                    { key: 'import', icon: FaFileImport, label: 'Import CSV/Excel' },
+                  ].map(({ key, icon: Icon, label }) => (
+                    <button key={key} onClick={() => { setComponentModalTab(key as 'all' | 'add' | 'import'); if (key === 'all') { setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1 }); } if (key === 'import') { setImportFile(null); setImportPreview([]); setImportResult(null); } }}
+                      className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${componentModalTab === key ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                      <Icon className="text-xs" />{label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-5">
+                  {componentModalTab === 'all' ? (
+                    <>
+                      {/* Filter bar */}
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        {['all', 'ordered', 'not-ordered', 'in-use', 'maintenance'].map((f) => (
+                          <button key={f} onClick={() => setComponentFilter(f)}
+                            className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-colors capitalize ${componentFilter === f ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            {f === 'all' ? 'All' : f.replace('-', ' ')}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Group by category */}
+                      {(() => {
+                        const filtered = componentFilter === 'all' ? components : components.filter(c => c.status === componentFilter);
+                        const grouped = filtered.reduce((acc, comp) => {
+                          if (!acc[comp.category]) acc[comp.category] = [];
+                          acc[comp.category].push(comp);
+                          return acc;
+                        }, {} as Record<string, ProjectComponent[]>);
+
+                        // Grand total
+                        const grandTotal = filtered.reduce((sum, c) => sum + (c.totalPrice > 0 ? c.totalPrice : (c.quantity || 1) * (c.unitPrice || 0)), 0);
+
+                        if (filtered.length === 0) return (
+                          <div className="text-center py-12">
+                            <FaCubes className="text-gray-300 text-4xl mx-auto mb-3" />
+                            <p className="text-gray-500 font-medium">No components found</p>
+                            <button onClick={() => setComponentModalTab('add')} className="mt-3 text-sm text-green-600 hover:underline font-medium">Add your first component</button>
+                          </div>
+                        );
+
+                        return (
+                          <>
+                            {/* Grand Total Banner */}
+                            <div className="mb-4 p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <FaChartBar className="text-white text-sm" />
+                                <div>
+                                  <p className="text-[10px] text-green-100 font-medium">Grand Total ({filtered.length} items)</p>
+                                  <p className="text-lg font-bold text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <p className="text-[10px] text-green-100">Total Qty</p>
+                                  <p className="text-sm font-bold text-white">{filtered.reduce((s, c) => s + c.quantity, 0)} units</p>
+                                </div>
+                                {/* Delete All button */}
+                                <button
+                                  onClick={() => setShowDeleteAllConfirm(true)}
+                                  className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shadow-sm"
+                                  title="Delete all components"
+                                >
+                                  <FaTrash className="text-xs" />
+                                  Delete All
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Full Table View */}
+                            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide w-8">#</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide">Component Name</th>
+                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide">Category</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Qty</th>
+                                    <th className="px-3 py-2.5 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wide">Unit ₹</th>
+                                    <th className="px-3 py-2.5 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wide">Total ₹</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Status</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Link</th>
+                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                  {filtered.map((comp, idx) => {
+                                    const statusConfig = {
+                                      'ordered':     { icon: FaShoppingCart, color: 'text-blue-600',   bg: 'bg-blue-50',   label: 'Ordered' },
+                                      'not-ordered': { icon: FaBoxOpen,      color: 'text-orange-600', bg: 'bg-orange-50', label: 'Not Ordered' },
+                                      'in-use':      { icon: FaCheckSquare,  color: 'text-green-600',  bg: 'bg-green-50',  label: 'In Use' },
+                                      'maintenance': { icon: FaTools,        color: 'text-red-600',    bg: 'bg-red-50',    label: 'Maintenance' },
+                                    }[comp.status] || { icon: FaBoxOpen, color: 'text-gray-500', bg: 'bg-gray-50', label: comp.status };
+                                    const StatusIcon = statusConfig.icon;
+
+                                    const getStore = (url: string) => {
+                                      if (!url) return null;
+                                      if (url.includes('robocraze')) return { label: 'Robocraze', color: 'text-orange-600 bg-orange-50' };
+                                      if (url.includes('robu')) return { label: 'Robu', color: 'text-blue-600 bg-blue-50' };
+                                      if (url.includes('makerbazar')) return { label: 'MakerBazar', color: 'text-purple-600 bg-purple-50' };
+                                      if (url.includes('flyrobo')) return { label: 'FlyRobo', color: 'text-green-600 bg-green-50' };
+                                      return { label: 'Link', color: 'text-gray-600 bg-gray-50' };
+                                    };
+                                    const store = comp.productLink ? getStore(comp.productLink) : null;
+                                    const rowTotal = comp.totalPrice > 0 ? comp.totalPrice : (comp.quantity || 1) * (comp.unitPrice || 0);
+
+                                    return (
+                                      <tr key={comp._id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                        <td className="px-3 py-2.5 text-gray-400 text-[10px] font-medium">{idx + 1}</td>
+                                        <td className="px-3 py-2.5 max-w-[180px]">
+                                          <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{comp.name}</p>
+                                        </td>
+                                        <td className="px-3 py-2.5">
+                                          <span className="text-[9px] font-semibold px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full whitespace-nowrap">{comp.category}</span>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center font-bold text-gray-800 dark:text-gray-200">{comp.quantity}</td>
+                                        <td className="px-3 py-2.5 text-right text-gray-700 dark:text-gray-300">
+                                          {comp.unitPrice > 0 ? `₹${comp.unitPrice.toLocaleString('en-IN')}` : '—'}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-right font-bold text-green-700 dark:text-green-400">
+                                          {rowTotal > 0 ? `₹${rowTotal.toLocaleString('en-IN')}` : '—'}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                          <button
+                                            onClick={async () => {
+                                              const statuses: Array<'not-ordered' | 'ordered' | 'in-use' | 'maintenance'> = ['not-ordered', 'ordered', 'in-use', 'maintenance'];
+                                              const next = statuses[(statuses.indexOf(comp.status as any) + 1) % statuses.length];
+                                              const result = await componentsAPI.updateComponent(comp._id, { ...comp, status: next, productLink: comp.productLink || '', unitPrice: comp.unitPrice || 0 });
+                                              if (result.success) setComponents(prev => prev.map(c => c._id === comp._id ? result.component : c));
+                                            }}
+                                            className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color} hover:opacity-80 transition-opacity cursor-pointer`}
+                                            title="Click to change status"
+                                          >
+                                            <StatusIcon className="text-[8px]" />
+                                            {statusConfig.label}
+                                          </button>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                          {comp.productLink && store ? (
+                                            <div className="relative group/link inline-block">
+                                              <a href={comp.productLink} target="_blank" rel="noopener noreferrer"
+                                                className={`inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-1 rounded-full ${store.color} hover:opacity-80 transition-opacity`}>
+                                                <FaStore className="text-[8px]" />{store.label}<FaExternalLinkAlt className="text-[7px]" />
+                                              </a>
+                                              {/* Hover preview */}
+                                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 hidden group-hover/link:block pointer-events-none">
+                                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 p-3 w-48">
+                                                  <div className="w-full h-24 bg-gray-100 rounded-lg mb-2 overflow-hidden">
+                                                    <img src={`https://api.microlink.io/?url=${encodeURIComponent(comp.productLink)}&screenshot=true&meta=false&embed=screenshot.url`}
+                                                      alt="Preview" className="w-full h-full object-cover"
+                                                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                  </div>
+                                                  <p className="text-[10px] font-semibold text-gray-900 truncate">{comp.name}</p>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span className="text-[9px] text-gray-400 italic">Offline</span>
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-2.5">
+                                          <div className="flex items-center justify-center gap-1">
+                                            <button onClick={() => {
+                                              setEditingComponent(comp);
+                                              setComponentForm({ name: comp.name, category: comp.category, status: comp.status, productLink: comp.productLink || '', quantity: comp.quantity, unitPrice: comp.unitPrice || 0 });
+                                              setComponentModalTab('add');
+                                            }} className="w-6 h-6 rounded-md bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-500 transition-colors">
+                                              <FaEdit className="text-[10px]" />
+                                            </button>
+                                            <button onClick={async () => {
+                                              if (!confirm(`Delete "${comp.name}"?`)) return;
+                                              const result = await componentsAPI.deleteComponent(comp._id);
+                                              if (result.success) setComponents(prev => prev.filter(c => c._id !== comp._id));
+                                            }} className="w-6 h-6 rounded-md bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-500 transition-colors">
+                                              <FaTrash className="text-[10px]" />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                                {/* Table footer with totals */}
+                                <tfoot>
+                                  <tr className="bg-gradient-to-r from-green-500 to-emerald-600">
+                                    <td colSpan={3} className="px-3 py-2.5 text-xs font-bold text-white">
+                                      Grand Total ({filtered.length} items)
+                                    </td>
+                                    <td className="px-3 py-2.5 text-center text-xs font-bold text-white">
+                                      {filtered.reduce((s, c) => s + c.quantity, 0)}
+                                    </td>
+                                    <td className="px-3 py-2.5 text-right text-xs font-bold text-white">—</td>
+                                    <td className="px-3 py-2.5 text-right text-sm font-bold text-white">
+                                      ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td colSpan={3} className="px-3 py-2.5"></td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : componentModalTab === 'import' ? (
+                    /* ── IMPORT TAB ── */
+                    <div className="space-y-5">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+                          <FaFileImport className="text-green-500" /> Import from CSV / Excel
+                        </h3>
+                        <p className="text-xs text-gray-500">Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file. Columns: <code className="bg-gray-100 px-1 rounded">name, category, status, quantity, productLink</code></p>
+                      </div>
+
+                      {/* Download template */}
+                      <button
+                        onClick={() => {
+                          const csv = 'Component Name,Quantity,Unit Price,Total Price,Product Link\nXT60 Connector Male Female Pair,1,27,27,https://robocraze.com/products/xt60-connector-pair\nDS18B20 Temperature Sensor,1,262,262,https://robocraze.com/products/ds18b20-digital-temperature-sensor-probe\n3.7V 2600mAh 18650 Battery,15,60,900,Offline Market';
+                          const blob = new Blob([csv], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url; a.download = 'components_template.csv'; a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-2 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-lg hover:bg-green-100 transition-colors"
+                      >
+                        <FaFileExcel className="text-green-600" /> Download Template CSV
+                      </button>
+
+                      {/* Upload area */}
+                      <div
+                        onClick={() => importFileRef.current?.click()}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={async e => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0];
+                          if (file) await handleImportFile(file);
+                        }}
+                        className="border-2 border-dashed border-green-300 rounded-xl p-8 text-center cursor-pointer hover:border-green-400 hover:bg-green-50/50 transition-all"
+                      >
+                        <FaCloudUploadAlt className="text-green-400 text-4xl mx-auto mb-3" />
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {importFile ? importFile.name : 'Click or drag & drop your file here'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">Supports .csv and .xlsx files</p>
+                        <input
+                          ref={importFileRef}
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          className="hidden"
+                          onChange={async e => {
+                            const file = e.target.files?.[0];
+                            if (file) await handleImportFile(file);
+                          }}
+                        />
+                      </div>
+
+                      {/* Preview table */}
+                      {importPreview.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                              <FaCheckDouble className="text-green-500" /> Preview — {importPreview.length} components detected
+                            </p>
+                            <span className="text-[10px] text-gray-400">Showing first 8</span>
+                          </div>
+
+                          {/* Category summary */}
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {Object.entries(
+                              importPreview.reduce((acc, r) => {
+                                const cat = r.category || 'General';
+                                acc[cat] = (acc[cat] || 0) + 1;
+                                return acc;
+                              }, {} as Record<string, number>)
+                            ).map(([cat, count]) => (
+                              <span key={cat} className="text-[10px] font-semibold px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-full">
+                                {cat}: {count as number}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                            <table className="w-full text-xs">
+                              <thead className="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                  {['#', 'Component Name', 'Category', 'Qty', 'Unit ₹', 'Total ₹', 'Link'].map(h => (
+                                    <th key={h} className="px-2 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {importPreview.slice(0, 8).map((row, i) => (
+                                  <tr key={i} className="bg-white dark:bg-gray-900 hover:bg-gray-50">
+                                    <td className="px-2 py-2 text-gray-400 text-[10px]">{i + 1}</td>
+                                    <td className="px-2 py-2 font-medium text-gray-900 dark:text-white max-w-[140px]">
+                                      <p className="truncate text-[11px]">{row['Component Name'] || '—'}</p>
+                                    </td>
+                                    <td className="px-2 py-2">
+                                      <span className="text-[9px] font-semibold px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full whitespace-nowrap">{row.category || 'General'}</span>
+                                    </td>
+                                    <td className="px-2 py-2 text-gray-700 dark:text-gray-300 font-medium">{row.Quantity || 1}</td>
+                                    <td className="px-2 py-2 text-gray-700 dark:text-gray-300">₹{(row['Unit Price'] || 0).toLocaleString('en-IN')}</td>
+                                    <td className="px-2 py-2 font-bold text-green-700">₹{(row['Total Price'] || (row.Quantity || 1) * (row['Unit Price'] || 0)).toLocaleString('en-IN')}</td>
+                                    <td className="px-2 py-2">
+                                      {row['Product Link'] ? (
+                                        <a href={row['Product Link']} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-500 hover:underline">
+                                          {row['Product Link'].includes('robocraze') ? '🟠 Robocraze' :
+                                           row['Product Link'].includes('robu') ? '🔵 Robu' :
+                                           row['Product Link'].includes('makerbazar') ? '🟣 MakerBazar' :
+                                           row['Product Link'].includes('flyrobo') ? '🟢 FlyRobo' : '🔗 Link'}
+                                        </a>
+                                      ) : (
+                                        <span className="text-[9px] text-gray-400 italic">Offline</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Total preview */}
+                          <div className="mt-3 p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FaChartBar className="text-white" />
+                              <div>
+                                <p className="text-[10px] text-green-100">Estimated Grand Total</p>
+                                <p className="text-base font-bold text-white">
+                                  ₹{importPreview.reduce((s, r) => s + ((r['Total Price'] || (r.Quantity || 1) * (r['Unit Price'] || 0))), 0).toLocaleString('en-IN')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] text-green-100">Components</p>
+                              <p className="text-sm font-bold text-white">{importPreview.length} items</p>
+                            </div>
+                          </div>
+
+                          {importPreview.length > 8 && (
+                            <p className="text-[10px] text-gray-400 mt-1 text-center">+{importPreview.length - 8} more rows will be imported</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Import result */}
+                      {importResult && (
+                        <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                          <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-green-700">Import Successful!</p>
+                            <p className="text-xs text-green-600">Created {importResult.created} components{importResult.skipped > 0 ? `, skipped ${importResult.skipped}` : ''}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Import button */}
+                      {importPreview.length > 0 && !importResult && (
+                        <button
+                          onClick={async () => {
+                            setImportLoading(true);
+                            // Log first item to debug
+                            console.log('Sending to API - sample item:', JSON.stringify(importPreview[0]));
+                            console.log('Unit Price value:', importPreview[0]?.['Unit Price'], typeof importPreview[0]?.['Unit Price']);
+                            
+                            // Clean and normalize data before sending
+                            const cleanedData = importPreview.map(item => ({
+                              'Component Name': String(item['Component Name'] || ''),
+                              category: String(item.category || 'General'),
+                              status: String(item.status || 'not-ordered'),
+                              Quantity: Number(item.Quantity) || 1,
+                              'Unit Price': Number(item['Unit Price']) || 0,
+                              'Total Price': Number(item['Total Price']) || (Number(item.Quantity) || 1) * (Number(item['Unit Price']) || 0),
+                              'Product Link': String(item['Product Link'] || ''),
+                            }));
+                            
+                            console.log('Cleaned sample:', JSON.stringify(cleanedData[0]));
+                            
+                            const result = await componentsAPI.importComponents(cleanedData);
+                            setImportLoading(false);
+                            if (result.success) {
+                              setImportResult({ created: result.created, skipped: result.skipped });
+                              await fetchComponents();
+                              setTimeout(() => {
+                                setComponentModalTab('all');
+                                setImportFile(null);
+                                setImportPreview([]);
+                                setImportResult(null);
+                              }, 2000);
+                            }
+                          }}
+                          disabled={importLoading}
+                          className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-60"
+                        >
+                          {importLoading ? (
+                            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Importing...</>
+                          ) : (
+                            <><FaFileImport /> Import {importPreview.length} Components</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    /* Add / Edit Form */
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        {editingComponent ? <><FaEdit className="text-blue-500" /> Edit Component</> : <><FaPlus className="text-green-500" /> Add New Component</>}
+                      </h3>
+
+                      {/* Name */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                          <FaMicrochip className="text-green-500" /> Component Name *
+                        </label>
+                        <input type="text" value={componentForm.name} onChange={e => setComponentForm(p => ({ ...p, name: e.target.value }))}
+                          placeholder="e.g. Raspberry Pi 4, Arduino Uno..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20" />
+                      </div>
+
+                      {/* Category */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                          <FaTag className="text-green-500" /> Category *
+                        </label>
+                        <input type="text" value={componentForm.category} onChange={e => setComponentForm(p => ({ ...p, category: e.target.value }))}
+                          placeholder="e.g. Sensors, Microcontrollers, Power..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20" />
+                      </div>
+
+                      {/* Status */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                          <FaSortAmountDown className="text-green-500" /> Status
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { value: 'not-ordered', icon: FaBoxOpen,      label: 'Not Ordered', color: 'text-orange-500', border: 'border-orange-300', bg: 'bg-orange-50' },
+                            { value: 'ordered',     icon: FaShoppingCart, label: 'Ordered',     color: 'text-blue-500',   border: 'border-blue-300',   bg: 'bg-blue-50' },
+                            { value: 'in-use',      icon: FaCheckSquare,  label: 'In Use',      color: 'text-green-500',  border: 'border-green-300',  bg: 'bg-green-50' },
+                            { value: 'maintenance', icon: FaTools,        label: 'Maintenance', color: 'text-red-500',    border: 'border-red-300',    bg: 'bg-red-50' },
+                          ].map(({ value, icon: Icon, label, color, border, bg }) => (
+                            <button key={value} onClick={() => setComponentForm(p => ({ ...p, status: value }))}
+                              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-xs font-semibold transition-all ${componentForm.status === value ? `${border} ${bg} ${color}` : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                              <Icon className="text-sm" />{label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quantity */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                          <FaCubes className="text-green-500" /> Quantity
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setComponentForm(p => ({ ...p, quantity: Math.max(0, p.quantity - 1) }))} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
+                          <input type="number" value={componentForm.quantity} onChange={e => setComponentForm(p => ({ ...p, quantity: parseInt(e.target.value) || 0 }))} min={0}
+                            className="w-20 text-center px-2 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-green-400" />
+                          <button onClick={() => setComponentForm(p => ({ ...p, quantity: p.quantity + 1 }))} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
+                        </div>
+                      </div>
+
+                      {/* Unit Price + Auto Total */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                            <FaTag className="text-green-500" /> Unit Price (₹)
+                          </label>
+                          <input type="number" value={componentForm.unitPrice} onChange={e => setComponentForm(p => ({ ...p, unitPrice: parseFloat(e.target.value) || 0 }))} min={0} step="0.01"
+                            placeholder="0.00"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                            <FaChartBar className="text-green-500" /> Total Price (₹)
+                          </label>
+                          <div className="w-full px-3 py-2 text-sm border border-green-200 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold">
+                            ₹{(componentForm.quantity * componentForm.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Product Link */}
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1 mb-1.5">
+                          <FaLink className="text-green-500" /> Product Link
+                        </label>
+                        <input type="url" value={componentForm.productLink} onChange={e => setComponentForm(p => ({ ...p, productLink: e.target.value }))}
+                          placeholder="https://robocraze.com/... or robu.in/... or makerbazar.in/..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-400/20" />
+                        {/* Store badges */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] text-gray-400">Quick fill:</span>
+                          {[
+                            { label: 'Robocraze', url: 'https://robocraze.com/', color: 'text-orange-600 bg-orange-50 border-orange-200' },
+                            { label: 'Robu.in', url: 'https://robu.in/', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+                            { label: 'MakerBazar', url: 'https://makerbazar.in/', color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                          ].map(({ label, url, color }) => (
+                            <button key={label} type="button"
+                              onClick={() => setComponentForm(p => ({ ...p, productLink: p.productLink || url }))}
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${color} flex items-center gap-1`}>
+                              <FaStore className="text-[8px]" />{label}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Live preview */}
+                        {componentForm.productLink && (
+                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                            <FaExternalLinkAlt className="text-gray-400 text-xs flex-shrink-0" />
+                            <a href={componentForm.productLink} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] text-green-600 hover:underline truncate flex-1">
+                              {componentForm.productLink}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Submit */}
+                      <button
+                        onClick={async () => {
+                          if (!componentForm.name.trim() || !componentForm.category.trim()) {
+                            alert('Name and category are required'); return;
+                          }
+                          if (editingComponent) {
+                            const result = await componentsAPI.updateComponent(editingComponent._id, componentForm);
+                            if (result.success) {
+                              setComponents(prev => prev.map(c => c._id === editingComponent._id ? result.component : c));
+                              setEditingComponent(null);
+                              setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1 });
+                              setComponentModalTab('all');
+                            }
+                          } else {
+                            const result = await componentsAPI.createComponent(componentForm);
+                            if (result.success) {
+                              setComponents(prev => [result.component, ...prev]);
+                              setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1 });
+                              setComponentModalTab('all');
+                            }
+                          }
+                        }}
+                        className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                      >
+                        {editingComponent ? <><FaEdit /> Update Component</> : <><FaPlus /> Add Component</>}
+                      </button>
+
+                      {editingComponent && (
+                        <button onClick={() => { setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1 }); setComponentModalTab('all'); }}
+                          className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors">
+                          Cancel Edit
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Trending in AquaNet */}
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
@@ -1823,6 +2625,59 @@ export default function DashboardPage() {
 
       {/* ── CHAT PANEL ─────────────────────────────────────────────────────── */}
       <ChatPanel userInitial={userInitial} userId={userId} open={chatOpen} onClose={() => setChatOpen(false)} contacts={chatContacts} />
+
+      {/* ── DELETE ALL COMPONENTS CONFIRMATION MODAL ───────────────────────── */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowDeleteAllConfirm(false)} />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center text-center">
+            {/* Warning icon */}
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <FaTrash className="text-red-500 text-2xl" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete All Components?</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+              This will permanently delete <strong className="text-red-600">{components.length} components</strong> from the database.
+            </p>
+            <p className="text-xs text-red-500 font-medium mb-6">⚠️ This action cannot be undone.</p>
+
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setShowDeleteAllConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setDeletingAll(true);
+                  try {
+                    const result = await componentsAPI.deleteAllComponents();
+                    if (result.success) {
+                      setComponents([]);
+                      setShowDeleteAllConfirm(false);
+                    } else {
+                      alert('Failed to delete: ' + result.message);
+                    }
+                  } catch (err) {
+                    alert('Failed to delete components');
+                  } finally {
+                    setDeletingAll(false);
+                  }
+                }}
+                disabled={deletingAll}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {deletingAll ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Deleting...</>
+                ) : (
+                  <><FaTrash className="text-xs" /> Yes, Delete All</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
