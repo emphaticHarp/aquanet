@@ -76,28 +76,20 @@ function FallingLeaves() {
 
   useEffect(() => {
     setLeaves(
-      Array.from({ length: 18 }, (_, i) => ({
+      Array.from({ length: 6 }, (_, i) => ({
         id: i,
         left: Math.random() * 100,
         delay: Math.random() * 12,
-        duration: 10 + Math.random() * 8,
-        size: 12 + Math.random() * 16,
+        duration: 12 + Math.random() * 8,
+        size: 10 + Math.random() * 12,
         rotation: Math.random() * 360,
-        opacity: 0.15 + Math.random() * 0.25,
+        opacity: 0.05 + Math.random() * 0.03,
       }))
     );
   }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {/* 3D floating orbs */}
-      <div className="absolute -top-24 -left-24 w-96 h-96 bg-gradient-to-br from-green-300/20 to-emerald-400/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute top-1/3 -right-32 w-80 h-80 bg-gradient-to-br from-teal-300/20 to-green-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-gradient-to-br from-lime-300/15 to-emerald-300/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }} />
-      {/* Rotating 3D rings */}
-      <div className="absolute top-1/4 left-1/4 w-48 h-48 border border-green-300/20 rounded-full" style={{ animation: 'spin3d 20s linear infinite' }} />
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 border border-emerald-300/15 rounded-full" style={{ animation: 'spin3d 30s linear infinite reverse' }} />
-      {/* Falling leaves */}
       {leaves.map((leaf) => (
         <div
           key={leaf.id}
@@ -119,12 +111,8 @@ function FallingLeaves() {
           0%   { top: -40px; transform: translateX(0) rotate(0deg); opacity: 0; }
           5%   { opacity: 1; }
           50%  { transform: translateX(40px) rotate(180deg); }
-          95%  { opacity: 0.8; }
+          95%  { opacity: 0.6; }
           100% { top: 100vh; transform: translateX(-40px) rotate(360deg); opacity: 0; }
-        }
-        @keyframes spin3d {
-          from { transform: rotate(0deg) rotateX(20deg); }
-          to   { transform: rotate(360deg) rotateX(20deg); }
         }
       `}</style>
     </div>
@@ -1018,7 +1006,7 @@ function DashboardSkeleton() {
           {/* Stories skeleton */}
           <div className="flex gap-3 overflow-hidden">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="w-28 h-40 rounded-xl flex-shrink-0" />
+              <Skeleton key={i} className="w-24 h-36 rounded-xl flex-shrink-0" />
             ))}
           </div>
           {/* Post skeletons */}
@@ -1452,7 +1440,7 @@ export default function DashboardPage() {
   const userInitial = user?.name?.charAt(0).toUpperCase() ?? 'U';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 relative transition-colors duration-300">
+    <div className="min-h-screen bg-[#f0f2f5] dark:bg-gray-950 relative transition-colors duration-300">
       <FallingLeaves />
 
       {/* ── TOAST NOTIFICATION ─────────────────────────────────────────────── */}
@@ -1486,16 +1474,16 @@ export default function DashboardPage() {
       )}
 
       {/* ── TOP NAVBAR (floating) ──────────────────────────────────────────── */}
-      <div className="sticky top-3 z-50 px-4">
-        <nav className="max-w-7xl mx-auto bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl rounded-2xl">
-          <div className="px-4 h-14 flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-50 px-0">
+        <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-700/60 shadow-sm" style={{ boxShadow: '0 1px 0 0 rgba(0,0,0,0.06), 0 2px 8px -2px rgba(0,0,0,0.06)' }}>
+          <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between gap-4">
 
           {/* Logo */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md flex-shrink-0">
-              <FaLeaf className="text-white text-lg" />
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0">
+              <FaLeaf className="text-white text-xs" />
             </div>
-            <span className="text-lg font-bold text-gray-900 dark:text-white hidden sm:block">
+            <span className="text-sm font-bold text-gray-900 dark:text-white hidden sm:block tracking-tight">
               Aqua<span className="text-green-600">Net</span>
             </span>
           </div>
@@ -1503,13 +1491,13 @@ export default function DashboardPage() {
           {/* Search bar */}
           <div className="flex-1 max-w-md hidden md:block">
             <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
               <input
                 type="text"
                 placeholder="Search AquaNet..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 border border-transparent focus:outline-none focus:border-green-400 focus:bg-white dark:focus:bg-gray-700 transition-colors"
+                className="w-full pl-8 pr-4 py-1.5 bg-gray-100/80 dark:bg-gray-800 rounded-full text-xs text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 border border-transparent focus:outline-none focus:border-green-400 focus:bg-white dark:focus:bg-gray-700 transition-colors"
               />
             </div>
           </div>
@@ -1525,39 +1513,39 @@ export default function DashboardPage() {
               <button
                 key={label}
                 aria-label={label}
-                className={`hidden sm:flex flex-col items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-green-600 transition-colors`}
+                className={`hidden sm:flex flex-col items-center justify-center w-8 h-8 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-green-600 transition-colors`}
               >
-                <Icon className="text-lg" />
+                <Icon className="text-base" />
               </button>
             ))}
 
             {/* Notification bell */}
             <button
               aria-label="Notifications"
-              className="relative flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600 transition-colors"
+              className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600 transition-colors"
             >
-              <FaBell className="text-lg" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+              <FaBell className="text-base" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white" />
             </button>
 
             {/* Messages icon */}
             <button
               aria-label="Messages"
               onClick={() => setChatOpen(o => !o)}
-              className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${chatOpen ? 'bg-green-100 dark:bg-green-900/40 text-green-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
+              className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-colors ${chatOpen ? 'bg-green-100 dark:bg-green-900/40 text-green-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-600'}`}
             >
-              <FaCommentDots className="text-lg" />
+              <FaCommentDots className="text-base" />
               {totalUnread > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full border-2 border-white" />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-green-500 rounded-full border border-white" />
               )}
             </button>
 
             {/* User avatar + name */}
             <div className="flex items-center gap-2 ml-1 pl-2 border-l border-gray-200">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
                 {userInitial}
               </div>
-              <span className="hidden lg:block text-sm font-medium text-gray-800 dark:text-gray-200 max-w-[100px] truncate">
+              <span className="hidden lg:block text-xs font-medium text-gray-800 dark:text-gray-200 max-w-[100px] truncate">
                 {user?.name}
               </span>
             </div>
@@ -1580,34 +1568,35 @@ export default function DashboardPage() {
         <aside className="hidden lg:flex flex-col gap-4 w-60 flex-shrink-0">
 
           {/* Profile card */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden shadow-sm">
             {/* Cover strip */}
-            <div className="h-16 bg-gradient-to-r from-green-500 to-emerald-600" />
-            <div className="px-4 pb-4 -mt-8">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xl font-bold border-4 border-white shadow-md mx-auto">
+            <div className="h-12 bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500" />
+            <div className="px-3 pb-3 -mt-7">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-lg font-bold border-2 border-white shadow-sm mx-auto">
                 {userInitial}
               </div>
-              <div className="text-center mt-2">
-                <p className="font-semibold text-gray-900 dark:text-white text-sm">{user?.name}</p>
+              <div className="text-center mt-1.5">
+                <p className="font-medium text-gray-900 dark:text-white text-sm">{user?.name}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
-                <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                <span className="inline-block mt-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-medium">
                   Aquaculture Manager
                 </span>
               </div>
             </div>
 
             {/* Nav links */}
-            <div className="border-t border-gray-100 dark:border-gray-700 px-2 py-2">
+            <div className="border-t border-gray-100 dark:border-gray-700 px-2 py-1.5">
               {NAV_LINKS.map(({ icon: Icon, label, active }) => (
                 <button
                   key={label}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors relative ${
                     active
                       ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <Icon className={active ? 'text-green-600' : 'text-gray-400'} />
+                  {active && <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-green-500 rounded-full" />}
+                  <Icon className={`text-xs ${active ? 'text-green-600' : 'text-gray-400'}`} />
                   {label}
                 </button>
               ))}
@@ -1615,60 +1604,60 @@ export default function DashboardPage() {
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 transition-colors mt-1 border-t border-gray-100 dark:border-gray-700 pt-2"
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 transition-colors mt-1 border-t border-gray-100 dark:border-gray-700 pt-2"
               >
-                <FaSignOutAlt className="text-red-400" />
+                <FaSignOutAlt className="text-xs text-red-400" />
                 Logout
               </button>
 
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleDarkMode}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors mt-1"
+                className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors mt-1"
               >
-                <div className="flex items-center gap-3">
-                  {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-gray-400" />}
+                <div className="flex items-center gap-2.5">
+                  {darkMode ? <FaSun className="text-xs text-yellow-400" /> : <FaMoon className="text-xs text-gray-400" />}
                   <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
                 </div>
                 {/* Toggle pill */}
-                <div className={`w-10 h-5 rounded-full transition-colors duration-300 flex items-center px-0.5 ${darkMode ? 'bg-green-500' : 'bg-gray-300'}`}>
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${darkMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                <div className={`w-9 h-4.5 rounded-full transition-colors duration-300 flex items-center px-0.5 ${darkMode ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform duration-300 ${darkMode ? 'translate-x-4' : 'translate-x-0'}`} />
                 </div>
               </button>
             </div>
           </div>
 
           {/* Quick stats */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Stats</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">
+            <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2.5">Quick Stats</p>
             <div className="space-y-2">
               {QUICK_STATS.map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
-                  <span className="text-sm font-bold text-green-700 dark:text-green-400">{value}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>
+                  <span className="text-xs font-bold text-green-700 dark:text-green-400">{value}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* LinkedIn-style analytics */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <FaLinkedin className="text-blue-600 text-base" />
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Your Analytics</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-2.5">
+              <FaLinkedin className="text-blue-600 text-sm" />
+              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Your Analytics</p>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Profile views</span>
-                <span className="text-sm font-bold text-blue-600">{LINKEDIN_PROFILE.profileViews}</span>
+                <span className="text-xs font-bold text-blue-600">{LINKEDIN_PROFILE.profileViews}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Connections</span>
-                <span className="text-sm font-bold text-blue-600">{LINKEDIN_PROFILE.connections}</span>
+                <span className="text-xs font-bold text-blue-600">{LINKEDIN_PROFILE.connections}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Post impressions</span>
-                <span className="text-sm font-bold text-blue-600">{LINKEDIN_PROFILE.postImpressions}</span>
+                <span className="text-xs font-bold text-blue-600">{LINKEDIN_PROFILE.postImpressions}</span>
               </div>
             </div>
           </div>
@@ -1678,7 +1667,7 @@ export default function DashboardPage() {
         <main className="flex-1 min-w-0 flex flex-col gap-4">
 
           {/* Create post box */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-4 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
                 {userInitial}
@@ -1688,7 +1677,7 @@ export default function DashboardPage() {
                 placeholder={`What's on your mind, ${user?.name?.split(' ')[0] ?? 'there'}?`}
                 value={postText}
                 onChange={(e) => setPostText(e.target.value)}
-                className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 border border-transparent focus:outline-none focus:border-green-400 focus:bg-white dark:focus:bg-gray-700 transition-colors"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 border border-transparent focus:outline-none focus:border-green-400 focus:bg-white dark:focus:bg-gray-700 transition-colors"
               />
             </div>
 
@@ -1744,7 +1733,7 @@ export default function DashboardPage() {
           {/* Stories / highlights row */}
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {/* Add story card */}
-            <div className="flex-shrink-0 w-28 h-40 rounded-xl bg-white border border-gray-200 shadow-sm flex flex-col items-center justify-end pb-3 cursor-pointer hover:shadow-md transition-shadow overflow-hidden relative">
+            <div className="flex-shrink-0 w-24 h-36 rounded-xl bg-white border border-gray-200 shadow-sm flex flex-col items-center justify-end pb-3 cursor-pointer hover:shadow-md transition-shadow overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white border-4 border-white shadow flex items-center justify-center">
                 <span className="text-green-600 text-xl font-bold leading-none">+</span>
@@ -1755,7 +1744,7 @@ export default function DashboardPage() {
             {STORIES.map((story) => (
               <div
                 key={story.id}
-                className={`flex-shrink-0 w-28 h-40 rounded-xl bg-gradient-to-b ${story.gradient} shadow-sm flex flex-col items-end justify-end p-2 cursor-pointer hover:shadow-md transition-shadow overflow-hidden relative`}
+                className={`flex-shrink-0 w-24 h-36 rounded-xl bg-gradient-to-b ${story.gradient} shadow-sm flex flex-col items-end justify-end p-2 cursor-pointer hover:shadow-md transition-shadow overflow-hidden relative`}
               >
                 <div className="absolute top-2 left-2 w-9 h-9 rounded-full bg-white/30 backdrop-blur-sm border-2 border-white flex items-center justify-center text-lg">
                   {story.emoji}
@@ -1775,16 +1764,16 @@ export default function DashboardPage() {
             const avatarGradient = `from-${['green', 'teal', 'emerald', 'lime'][Math.floor(Math.random() * 4)]}-500 to-${['emerald', 'cyan', 'green', 'teal'][Math.floor(Math.random() * 4)]}-600`;
             
             return (
-            <article key={post._id} className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <article key={post._id} className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
               {/* Post header */}
-              <div className="flex items-start justify-between px-4 pt-4 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-white font-semibold text-sm flex-shrink-0`}>
+              <div className="flex items-start justify-between px-4 pt-3 pb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarGradient} flex items-center justify-center text-white font-medium text-sm flex-shrink-0`}>
                     {post.authorInitial}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{post.authorName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{post.authorEmail} · {timeAgo}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{post.authorName}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{post.authorEmail} · {timeAgo}</p>
                   </div>
                 </div>
                 {post.author === userId && (
@@ -1806,7 +1795,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Post text */}
-              <div className="px-4 pb-3">
+              <div className="px-4 pb-2">
                 <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{post.text}</p>
               </div>
 
@@ -1840,21 +1829,21 @@ export default function DashboardPage() {
               <div className="border-t border-gray-100 dark:border-gray-700 px-2 py-1 flex items-center">
                 <button
                   onClick={() => toggleLike(post._id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-medium text-xs transition-colors ${
                     isLiked
                       ? 'text-green-600 bg-green-50 dark:bg-green-900/30'
                       : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700'
                   }`}
                 >
-                  <FaThumbsUp />
+                  <FaThumbsUp className="text-[11px]" />
                   <span>Like</span>
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 transition-colors">
-                  <FaComment />
+                <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-medium text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 transition-colors">
+                  <FaComment className="text-[11px]" />
                   <span>Comment</span>
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 transition-colors">
-                  <FaShare />
+                <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-medium text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 transition-colors">
+                  <FaShare className="text-[11px]" />
                   <span>Share</span>
                 </button>
               </div>
@@ -1867,37 +1856,37 @@ export default function DashboardPage() {
         <aside className="hidden xl:flex flex-col gap-4 w-72 flex-shrink-0">
 
           {/* My Team */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">My Team</p>
-              <button className="text-xs text-green-600 hover:underline font-medium">See all</button>
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-xs font-medium text-gray-900 dark:text-white">My Team</p>
+              <button className="text-[11px] text-green-600 hover:underline font-medium">See all</button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {teamMembers.slice(0, 3).map((person) => (
-                <div key={person.id} className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center text-white font-semibold text-sm flex-shrink-0`}>
+                <div key={person.id} className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${person.gradient} flex items-center justify-center text-white font-medium text-xs flex-shrink-0`}>
                     {person.initial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{person.role}</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{person.name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{person.role}</p>
                   </div>
                   {connectedIds.includes(person.id) || person.connectionStatus === 'pending' ? (
-                    <span className="flex items-center gap-1 text-xs font-semibold text-gray-500 border border-gray-200 bg-gray-50 px-2.5 py-1 rounded-full flex-shrink-0">
-                      <FaCheckCircle className="text-green-500 text-[10px]" />
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-gray-500 border border-gray-200 bg-gray-50 px-2 py-0.5 rounded-md flex-shrink-0">
+                      <FaCheckCircle className="text-green-500 text-[9px]" />
                       Sent
                     </span>
                   ) : person.connectionStatus === 'accepted' ? (
-                    <span className="flex items-center gap-1 text-xs font-semibold text-green-700 border border-green-300 bg-green-50 px-2.5 py-1 rounded-full flex-shrink-0">
-                      <FaCheckCircle className="text-green-500 text-[10px]" />
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-green-700 border border-green-200 bg-green-50 px-2 py-0.5 rounded-md flex-shrink-0">
+                      <FaCheckCircle className="text-green-500 text-[9px]" />
                       Connected
                     </span>
                   ) : (
                     <button
                       onClick={() => handleConnect(person.id, person.name)}
-                      className="flex items-center gap-1 text-xs font-semibold text-green-700 border border-green-300 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0"
+                      className="flex items-center gap-1 text-[10px] font-medium text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 px-2 py-0.5 rounded-md transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0"
                     >
-                      <FaUserPlus className="text-[10px]" />
+                      <FaUserPlus className="text-[9px]" />
                       Connect
                     </button>
                   )}
@@ -1907,13 +1896,13 @@ export default function DashboardPage() {
           </div>
 
           {/* ── PROJECT COMPONENTS ─────────────────────────────── */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FaMicrochip className="text-green-600 text-sm" />
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Components</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <FaMicrochip className="text-green-600 text-xs" />
+                <p className="text-xs font-medium text-gray-900 dark:text-white">Components</p>
               </div>
-              <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full">
+              <span className="text-[10px] bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-md">
                 {components.length}
               </span>
             </div>
@@ -1929,8 +1918,8 @@ export default function DashboardPage() {
                 }[comp.status] || { icon: FaBoxOpen, color: 'text-gray-500', bg: 'bg-gray-50', label: comp.status };
                 const StatusIcon = statusConfig.icon;
                 return (
-                  <div key={comp._id} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className={`w-8 h-8 rounded-lg ${statusConfig.bg} flex items-center justify-center flex-shrink-0`}>
+                  <div key={comp._id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <div className={`w-7 h-7 rounded-md ${statusConfig.bg} flex items-center justify-center flex-shrink-0`}>
                       <StatusIcon className={`text-xs ${statusConfig.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1959,7 +1948,7 @@ export default function DashboardPage() {
                 setShowComponentsModal(true);
                 setComponentModalTab('all');
               }}
-              className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-semibold text-green-700 border border-green-200 bg-green-50 hover:bg-green-100 rounded-lg py-2 transition-colors"
+              className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-medium text-green-700 border border-green-200 hover:border-green-400 hover:bg-green-50 rounded-lg py-2 transition-all"
             >
               <FaLayerGroup className="text-xs" />
               Manage All Components
@@ -1973,13 +1962,13 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setShowComponentsModal(false); setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1, unitPrice:0 }); }} />
 
               {/* Modal - wide, starts below navbar */}
-              <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+              <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl ring-1 ring-black/10 w-full max-w-6xl flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100vh - 80px)' }}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-green-500 to-emerald-600">
+                <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600">
                   <div className="flex items-center gap-2">
-                    <FaMicrochip className="text-white text-lg" />
-                    <h2 className="text-base font-bold text-white">Project Components</h2>
-                    <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">{components.length}</span>
+                    <FaMicrochip className="text-white/90 text-sm" />
+                    <h2 className="text-sm font-medium text-white">Project Components</h2>
+                    <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">{components.length}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Fix prices button */}
@@ -1989,26 +1978,26 @@ export default function DashboardPage() {
                         const data = await res.json();
                         if (data.success) { await fetchComponents(); alert(`✅ Fixed! Grand Total: ₹${data.grandTotal?.toLocaleString('en-IN')}`); }
                       }}
-                      className="text-[10px] font-semibold bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                      className="text-[10px] font-medium bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-md flex items-center gap-1 transition-colors"
                       title="Recalculate all prices"
                     >
                       <FaChartBar className="text-[10px]" /> Fix Prices
                     </button>
-                    <button onClick={() => { setShowComponentsModal(false); setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1, unitPrice:0 }); }} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
-                      <FaTimes className="text-sm" />
+                    <button onClick={() => { setShowComponentsModal(false); setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1, unitPrice:0 }); }} className="w-7 h-7 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+                      <FaTimes className="text-xs" />
                     </button>
                   </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-gray-100 dark:border-gray-700 px-5 bg-gray-50 dark:bg-gray-800">
+                <div className="flex border-b border-gray-100 dark:border-gray-700 px-5 bg-gray-50/80 dark:bg-gray-800">
                   {[
                     { key: 'all', icon: FaLayerGroup, label: 'All Components' },
                     { key: 'add', icon: FaPlus, label: editingComponent ? 'Edit Component' : 'Add New' },
                     { key: 'import', icon: FaFileImport, label: 'Import CSV/Excel' },
                   ].map(({ key, icon: Icon, label }) => (
                     <button key={key} onClick={() => { setComponentModalTab(key as 'all' | 'add' | 'import'); if (key === 'all') { setEditingComponent(null); setComponentForm({ name:'', category:'', status:'not-ordered', productLink:'', quantity:1 }); } if (key === 'import') { setImportFile(null); setImportPreview([]); setImportResult(null); } }}
-                      className={`flex items-center gap-1.5 px-4 py-3 text-xs font-semibold border-b-2 transition-colors ${componentModalTab === key ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                      className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-all ${componentModalTab === key ? 'border-emerald-500 text-emerald-600 bg-emerald-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
                       <Icon className="text-xs" />{label}
                     </button>
                   ))}
@@ -2022,7 +2011,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 mb-4 flex-wrap">
                         {['all', 'ordered', 'not-ordered', 'in-use', 'maintenance'].map((f) => (
                           <button key={f} onClick={() => setComponentFilter(f)}
-                            className={`text-[10px] font-semibold px-3 py-1 rounded-full transition-colors capitalize ${componentFilter === f ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            className={`text-[10px] font-medium px-3 py-1 rounded-md transition-all capitalize border ${componentFilter === f ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600'}`}>
                             {f === 'all' ? 'All' : f.replace('-', ' ')}
                           </button>
                         ))}
@@ -2051,18 +2040,18 @@ export default function DashboardPage() {
                         return (
                           <>
                             {/* Grand Total Banner */}
-                            <div className="mb-4 p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-between">
+                            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <FaChartBar className="text-white text-sm" />
+                                <FaChartBar className="text-green-600 text-sm" />
                                 <div>
-                                  <p className="text-[10px] text-green-100 font-medium">Grand Total ({filtered.length} items)</p>
-                                  <p className="text-lg font-bold text-white">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                  <p className="text-[10px] text-gray-500 font-medium">Grand Total ({filtered.length} items)</p>
+                                  <p className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">
-                                  <p className="text-[10px] text-green-100">Total Qty</p>
-                                  <p className="text-sm font-bold text-white">{filtered.reduce((s, c) => s + c.quantity, 0)} units</p>
+                                  <p className="text-[10px] text-gray-500">Total Qty</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white">{filtered.reduce((s, c) => s + c.quantity, 0)} units</p>
                                 </div>
                                 {/* Delete All button */}
                                 <button
@@ -2080,16 +2069,16 @@ export default function DashboardPage() {
                             <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide w-8">#</th>
-                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide">Component Name</th>
-                                    <th className="px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide">Category</th>
-                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Qty</th>
-                                    <th className="px-3 py-2.5 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wide">Unit ₹</th>
-                                    <th className="px-3 py-2.5 text-right text-[10px] font-bold text-gray-500 uppercase tracking-wide">Total ₹</th>
-                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Status</th>
-                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Link</th>
-                                    <th className="px-3 py-2.5 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wide">Actions</th>
+                                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700">
+                                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest w-8">#</th>
+                                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Component Name</th>
+                                    <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Category</th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Qty</th>
+                                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Unit ₹</th>
+                                    <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Total ₹</th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Link</th>
+                                    <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -2114,22 +2103,22 @@ export default function DashboardPage() {
                                     const rowTotal = comp.totalPrice > 0 ? comp.totalPrice : (comp.quantity || 1) * (comp.unitPrice || 0);
 
                                     return (
-                                      <tr key={comp._id} className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                        <td className="px-3 py-2.5 text-gray-400 text-[10px] font-medium">{idx + 1}</td>
-                                        <td className="px-3 py-2.5 max-w-[180px]">
-                                          <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{comp.name}</p>
+                                      <tr key={comp._id} className="bg-white dark:bg-gray-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-3 py-2 text-gray-400 text-[10px] font-medium">{idx + 1}</td>
+                                        <td className="px-3 py-2 max-w-[180px]">
+                                          <p className="text-xs font-medium text-gray-900 dark:text-white leading-tight">{comp.name}</p>
                                         </td>
-                                        <td className="px-3 py-2.5">
-                                          <span className="text-[9px] font-semibold px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full whitespace-nowrap">{comp.category}</span>
+                                        <td className="px-3 py-2">
+                                          <span className="text-[9px] font-medium px-1.5 py-0.5 bg-green-50 text-green-700 rounded-md whitespace-nowrap">{comp.category}</span>
                                         </td>
-                                        <td className="px-3 py-2.5 text-center font-bold text-gray-800 dark:text-gray-200">{comp.quantity}</td>
-                                        <td className="px-3 py-2.5 text-right text-gray-700 dark:text-gray-300">
+                                        <td className="px-3 py-2 text-center font-bold text-gray-800 dark:text-gray-200">{comp.quantity}</td>
+                                        <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300">
                                           {comp.unitPrice > 0 ? `₹${comp.unitPrice.toLocaleString('en-IN')}` : '—'}
                                         </td>
-                                        <td className="px-3 py-2.5 text-right font-bold text-green-700 dark:text-green-400">
+                                        <td className="px-3 py-2 text-right font-bold text-green-700 dark:text-green-400">
                                           {rowTotal > 0 ? `₹${rowTotal.toLocaleString('en-IN')}` : '—'}
                                         </td>
-                                        <td className="px-3 py-2.5 text-center">
+                                        <td className="px-3 py-2 text-center">
                                           <button
                                             onClick={async () => {
                                               const statuses: Array<'not-ordered' | 'ordered' | 'in-use' | 'maintenance'> = ['not-ordered', 'ordered', 'in-use', 'maintenance'];
@@ -2137,14 +2126,14 @@ export default function DashboardPage() {
                                               const result = await componentsAPI.updateComponent(comp._id, { ...comp, status: next, productLink: comp.productLink || '', unitPrice: comp.unitPrice || 0 });
                                               if (result.success) setComponents(prev => prev.map(c => c._id === comp._id ? result.component : c));
                                             }}
-                                            className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color} hover:opacity-80 transition-opacity cursor-pointer`}
+                                            className={`inline-flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-md ${statusConfig.bg} ${statusConfig.color} hover:opacity-80 transition-opacity cursor-pointer`}
                                             title="Click to change status"
                                           >
                                             <StatusIcon className="text-[8px]" />
                                             {statusConfig.label}
                                           </button>
                                         </td>
-                                        <td className="px-3 py-2.5 text-center">
+                                        <td className="px-3 py-2 text-center">
                                           {comp.productLink && store ? (
                                             <div className="relative group/link inline-block">
                                               <a href={comp.productLink} target="_blank" rel="noopener noreferrer"
@@ -2167,7 +2156,7 @@ export default function DashboardPage() {
                                             <span className="text-[9px] text-gray-400 italic">Offline</span>
                                           )}
                                         </td>
-                                        <td className="px-3 py-2.5">
+                                        <td className="px-3 py-2">
                                           <div className="flex items-center justify-center gap-1">
                                             <button onClick={() => {
                                               setEditingComponent(comp);
@@ -2191,18 +2180,18 @@ export default function DashboardPage() {
                                 </tbody>
                                 {/* Table footer with totals */}
                                 <tfoot>
-                                  <tr className="bg-gradient-to-r from-green-500 to-emerald-600">
-                                    <td colSpan={3} className="px-3 py-2.5 text-xs font-bold text-white">
+                                  <tr className="bg-gray-50 dark:bg-gray-800 border-t-2 border-emerald-500">
+                                    <td colSpan={3} className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
                                       Grand Total ({filtered.length} items)
                                     </td>
-                                    <td className="px-3 py-2.5 text-center text-xs font-bold text-white">
+                                    <td className="px-3 py-2 text-center text-xs font-bold text-gray-700 dark:text-gray-300">
                                       {filtered.reduce((s, c) => s + c.quantity, 0)}
                                     </td>
-                                    <td className="px-3 py-2.5 text-right text-xs font-bold text-white">—</td>
-                                    <td className="px-3 py-2.5 text-right text-sm font-bold text-white">
+                                    <td className="px-3 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300">—</td>
+                                    <td className="px-3 py-2 text-right text-sm font-bold text-emerald-600">
                                       ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </td>
-                                    <td colSpan={3} className="px-3 py-2.5"></td>
+                                    <td colSpan={3} className="px-3 py-2"></td>
                                   </tr>
                                 </tfoot>
                               </table>
@@ -2566,17 +2555,17 @@ export default function DashboardPage() {
           )}
 
           {/* Trending in AquaNet */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Trending in AquaNet</p>
-            <div className="space-y-3">
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">
+            <p className="text-xs font-medium text-gray-900 dark:text-white mb-2.5">Trending in AquaNet</p>
+            <div className="space-y-2.5">
               {TRENDING_TOPICS.map((topic, idx) => (
-                <div key={topic.id} className="flex items-start gap-3 cursor-pointer group">
-                  <span className="text-xs font-bold text-gray-400 w-4 flex-shrink-0 mt-0.5">{idx + 1}</span>
+                <div key={topic.id} className="flex items-start gap-2.5 cursor-pointer group">
+                  <span className="text-[10px] font-bold text-gray-400 w-3 flex-shrink-0 mt-0.5">{idx + 1}</span>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                    <p className="text-xs font-medium text-gray-900 group-hover:text-green-600 transition-colors">
                       {topic.tag}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{topic.posts}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">{topic.posts}</p>
                   </div>
                 </div>
               ))}
@@ -2584,18 +2573,18 @@ export default function DashboardPage() {
           </div>
 
           {/* System Status widget */}
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">            <div className="flex items-center gap-2 mb-3">
-              <FaLeaf className="text-green-600 text-sm" />
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">System Status</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl ring-1 ring-black/5 dark:ring-white/5 p-3 shadow-sm">            <div className="flex items-center gap-1.5 mb-2.5">
+              <FaLeaf className="text-green-600 text-xs" />
+              <p className="text-xs font-medium text-gray-900 dark:text-white">System Status</p>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {SYSTEM_STATUS.map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FaCircle className={`text-[8px] ${item.color.replace('bg-', 'text-')}`} />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{item.label}</span>
+                    <FaCircle className={`text-[7px] ${item.color.replace('bg-', 'text-')}`} />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">{item.label}</span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${
                     item.status === 'online'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-yellow-100 text-yellow-700'
@@ -2605,9 +2594,9 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
-              <FaCheckCircle className="text-green-500 text-sm" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">2 of 3 systems nominal</span>
+            <div className="mt-2.5 pt-2.5 border-t border-gray-100 flex items-center gap-1.5">
+              <FaCheckCircle className="text-green-500 text-xs" />
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">2 of 3 systems nominal</span>
             </div>
           </div>
 
